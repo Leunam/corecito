@@ -16,13 +16,21 @@ min_core_number_increase_percentage: 3
 max_core_number_increase_percentage: 10
 min_core_number_decrease_percentage: 3
 max_core_number_decrease_percentage: 10
+# Core Number Wallet limits
+limit_core_number_wallet: False
+max_core_number_wallet: 1000
+increase_core_number_by: 100
+min_core_number_wallet: 500
+decrease_core_number_by: 50
 
 # EXCHANGE SETTINGS
+## Crypto.com Exchange settings
 cryptocom_trading_pair: ETH_BTC # This must be one of the pairs listed in https://github.com/goincrypto/cryptocom-exchange/blob/master/src/cryptocom/exchange/pairs.py
 cryptocom_core_number_currency: ETH # this must be one of the currencies listed in https://github.com/goincrypto/cryptocom-exchange/blob/master/src/cryptocom/exchange/coins.py
 cryptocom_base_currency: BTC # this must be one of the currencies listed in https://github.com/goincrypto/cryptocom-exchange/blob/master/src/cryptocom/exchange/coins.py
 cryptocom_max_decimals_buy: 6 # This is the limit Crypto.com has on ETH_BTC pair https://crypto.com/exchange/trade/spot/ETH_BTC
 cryptocom_max_decimals_sell: 3
+## Binance Exchange settings
 binance_trading_pair: ETHBTC # This must be one of the pairs listed in Binance
 binance_core_number_currency: ETH # # This must be one of the coins listed in Binance
 binance_base_currency: BTC # # This must be one of the coins listed in Binance

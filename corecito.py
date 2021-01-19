@@ -20,10 +20,10 @@ async def main():
   telegram = Telegram(config=config)
 
   iteration = 0
+  tx_price = 0
 
   fiat = config['is_fiat']
-
-  tx_price = 0
+  #limit_core_number_wallet = account.limit_core_number_wallet  
 
   while True:
     try:
@@ -37,6 +37,7 @@ async def main():
 
       # Get my base and Core Number currency balances
       balances = await account.get_balances()
+      core_number_wallet_limits = account.get_core_number_wallet_limits()
 
       logger.info(f"Balances\n(Base) {account.base_currency} balance:{balances['base_currency_balance']} \n(Core) {account.core_number_currency} balance:{balances['core_number_currency_balance']}\n")
 
@@ -68,7 +69,6 @@ async def main():
       elif coreNumberExploded(account.core_number, deviated_core_number, account.max_core_number_increase_percentage):
         logger.logCoreNumberExploded(increase_percentage, deviated_core_number, telegram)
 
-
       elif coreNumberIncreased(account.core_number, deviated_core_number, account.min_core_number_increase_percentage, account.max_core_number_increase_percentage):
         logger.logCoreNumberIncreased(increase_percentage, excess, account.core_number_currency, account.base_currency, telegram)
         #Check if 'fiat' is True to adjust messages format and tx_result var and 'excess' has to be divided by the buy_price
@@ -84,10 +84,13 @@ async def main():
         # If fiat, we sell the value previously calculated and stored on tx_result
         if (not config['safe_mode_on']):
           if fiat:
-            await account.order_market_sell(tx_result)
+            if coreNumberWalletMaxReached(balances.get('core_number_currency_available'), core_number_wallet_limits.get('max_core_number_wallet')):
+                print('Maximum Core number wallet limit reached, increasing core number by: %s' % excess) # TODO: move this line to the logger.py
+                account.core_number += excess
+            else:
+                await account.order_market_sell(tx_result)
           else:
             await account.order_market_buy(tx_result, excess)
-
 
       elif coreNumberDecreased(account.core_number, deviated_core_number, account.min_core_number_decrease_percentage, account.max_core_number_decrease_percentage):
         logger.logCoreNumberDecreased(decrease_percentage, missing, account.core_number_currency, account.base_currency, telegram)
@@ -103,10 +106,13 @@ async def main():
         # Buy missing base currency; ie. => in ETH_BTC pair, buy missing BTC => Sell ETH
         if (not config['safe_mode_on']):
           if fiat:
-            await account.order_market_buy(missing, tx_result)
+            if coreNumberWalletMinReached(balances.get('core_number_currency_available'), core_number_wallet_limits.get('min_core_number_wallet')):
+                print('Minimum Core number wallet limit reached, decreasing core number by: %s' % missing) # TODO: move this line to the logger.py
+                account.core_number -= missing
+            else:
+                await account.order_market_buy(missing, tx_result)
           else:
             await account.order_market_sell(missing)
-
 
       elif coreNumberPlummeted(account.core_number, deviated_core_number, account.max_core_number_decrease_percentage):
         logger.logCoreNumberPlummeted(decrease_percentage, deviated_core_number, telegram)
@@ -180,6 +186,18 @@ def priceExploded(price, max_price_stop):
   if max_price_stop is None:
     return False
   return price > max_price_stop
+
+""" Checks if the core_number_currency_available is higher than max_core_number_wallet"""
+def coreNumberWalletMaxReached(core_number_currency_available, max_core_number_wallet):
+    if max_core_number_wallet is None:
+        return False
+    return core_number_currency_available > max_core_number_wallet
+
+""" Checks if the core_number_currency_available is lower than min_core_number_wallet"""
+def coreNumberWalletMinReached(core_number_currency_available, min_core_number_wallet):
+    if min_core_number_wallet is None:
+        return False
+    return core_number_currency_available < min_core_number_wallet
 
 def coreNumberIncreased(core_number, deviated_core_number, min_core_number_increase_percentage, max_core_number_increase_percentage):
   min_core_number_increase = core_number * (1 + (min_core_number_increase_percentage/100))

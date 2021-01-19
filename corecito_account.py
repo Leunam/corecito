@@ -19,6 +19,12 @@ class CorecitoAccount:
     self.max_core_number_increase_percentage = config['max_core_number_increase_percentage']
     self.min_core_number_decrease_percentage = config['min_core_number_decrease_percentage']
     self.max_core_number_decrease_percentage = config['max_core_number_decrease_percentage']
+    self.limit_core_number_wallet = config['limit_core_number_wallet'] if 'limit_core_number_wallet' in config else None
+    self.max_core_number_wallet   = config['max_core_number_wallet']   if 'max_core_number_wallet'   in config else None
+    self.increase_core_number_by  = config['increase_core_number_by']  if 'increase_core_number_by'  in config else None
+    self.min_core_number_wallet   = config['min_core_number_wallet']   if 'min_core_number_wallet'   in config else None
+    self.decrease_core_number_by  = config['decrease_core_number_by']  if 'decrease_core_number_by'  in config else None
+    
     self.is_fiat = config['is_fiat']
 
     if self.exchange == 'crypto.com':
@@ -87,6 +93,16 @@ class CorecitoAccount:
             'base_currency_available': base_currency_available,
             'core_number_currency_balance': core_number_currency_balance,
             'core_number_currency_available': core_number_currency_available})
+
+  """Returns a dict with the core number wallet limits and the increase/decrease values to apply on the core number if limit_core_number_wallet is not None"""
+  def get_core_number_wallet_limits(self):
+    if (self.limit_core_number_wallet is None):
+        return False
+    else:
+        return({'max_core_number_wallet': self.max_core_number_wallet,
+                'increase_core_number_by': self.increase_core_number_by,
+                'min_core_number_wallet': self.min_core_number_wallet,
+                'decrease_core_number_by': self.decrease_core_number_by})
 
   async def order_market_buy(self, tx_result, quantity=0.0):
     if self.exchange == 'crypto.com':
