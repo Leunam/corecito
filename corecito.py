@@ -24,6 +24,7 @@ async def main():
 
   fiat = config['is_fiat']
   #limit_core_number_wallet = account.limit_core_number_wallet  
+  core_number_wallet_limits = await account.get_core_number_wallet_limits()
 
   while True:
     try:
@@ -37,7 +38,7 @@ async def main():
 
       # Get my base and Core Number currency balances
       balances = await account.get_balances()
-      core_number_wallet_limits = account.get_core_number_wallet_limits()
+      
 
       logger.info(f"Balances\n(Base) {account.base_currency} balance:{balances['base_currency_balance']} \n(Core) {account.core_number_currency} balance:{balances['core_number_currency_balance']}\n")
 
@@ -84,9 +85,10 @@ async def main():
         # If fiat, we sell the value previously calculated and stored on tx_result
         if (not config['safe_mode_on']):
           if fiat:
-            if coreNumberWalletMaxReached(balances.get('core_number_currency_available'), core_number_wallet_limits.get('max_core_number_wallet')):
-                print('Maximum Core number wallet limit reached, increasing core number by: %s' % excess) # TODO: move this line to the logger.py
+            if maximumCoreNumberLimitReached(balances.get('core_number_currency_available'), core_number_wallet_limits.get('max_core_number_wallet')):
                 account.core_number += excess
+                update_config_core_number(account.core_number)
+                logger.logMaximumCoreNumberLimitReached(excess, account.core_number, telegram)
             else:
                 await account.order_market_sell(tx_result)
           else:
@@ -106,9 +108,10 @@ async def main():
         # Buy missing base currency; ie. => in ETH_BTC pair, buy missing BTC => Sell ETH
         if (not config['safe_mode_on']):
           if fiat:
-            if coreNumberWalletMinReached(balances.get('core_number_currency_available'), core_number_wallet_limits.get('min_core_number_wallet')):
-                print('Minimum Core number wallet limit reached, decreasing core number by: %s' % missing) # TODO: move this line to the logger.py
+            if minimumCoreNumberLimitReached(balances.get('core_number_currency_available'), core_number_wallet_limits.get('min_core_number_wallet')):
                 account.core_number -= missing
+                update_config_core_number(account.core_number)
+                logger.logMinimumCoreNumberLimitReached(missing, account.core_number, telegram)
             else:
                 await account.order_market_buy(missing, tx_result)
           else:
@@ -160,6 +163,20 @@ def get_config():
     check_config(data)
   return data
 
+def update_config_core_number(new_core_number):
+    config_path = "config/default_config.yaml"
+    if exists("config/user_config.yaml"):
+        config_path = "config/user_config.yaml"
+
+    with open(config_path) as config_file:
+        data = yaml.safe_load(config_file)
+    
+    data['core_number'] = new_core_number
+
+    with open(config_path, 'w') as config_file:
+        yaml.safe_dump(data, config_file, default_flow_style=False)
+        
+
 def check_config(data):
   try:
     eval('cro.pairs.' + data['cryptocom_trading_pair'])
@@ -188,13 +205,13 @@ def priceExploded(price, max_price_stop):
   return price > max_price_stop
 
 """ Checks if the core_number_currency_available is higher than max_core_number_wallet"""
-def coreNumberWalletMaxReached(core_number_currency_available, max_core_number_wallet):
+def maximumCoreNumberLimitReached(core_number_currency_available, max_core_number_wallet):
     if max_core_number_wallet is None:
         return False
     return core_number_currency_available > max_core_number_wallet
 
 """ Checks if the core_number_currency_available is lower than min_core_number_wallet"""
-def coreNumberWalletMinReached(core_number_currency_available, min_core_number_wallet):
+def minimumCoreNumberLimitReached(core_number_currency_available, min_core_number_wallet):
     if min_core_number_wallet is None:
         return False
     return core_number_currency_available < min_core_number_wallet

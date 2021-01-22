@@ -63,6 +63,18 @@ class Logger:
     log_message = f'> Price is rock-solid stable ({increase_percentage:.2f}%)'
     self.logger.info(log_message)
 
+  def logMaximumCoreNumberLimitReached(self, increase_by, core_number, telegram):
+     log_message = f'> Maximum Core Number wallet limit reached, increasing Core Number by: {increase_by:.2f} / New Core Number: {core_number}'
+     self.logger.info(log_message)
+     if telegram and telegram.notifications_on:
+       telegram.send(log_message)
+
+  def logMinimumCoreNumberLimitReached(self, decrease_by, core_number, telegram):
+    log_message = f'> Minimum Core Number wallet limit reached, decreasing Core Number by: {decrease_by:.2f} / New Core Number: {core_number}'
+    self.logger.info(log_message)
+    if telegram and telegram.notifications_on:
+      telegram.send(log_message)
+
   def logException(self, exception, config, telegram):
     log_message = "Exception occurred -> '{}'. Waiting for next iteration... ({} seconds)\n\n\n".format(exception, config['seconds_between_iterations'])
     self.logger.info(log_message)
